@@ -36,6 +36,24 @@ def isVariableName(expr) -> bool:
 def isNewBlock(expr) -> bool:
     return expr[0] == 'begin'
 
+def isLess(expr) -> bool:
+    return expr[0] == '<'
+
+def isLessEqual(expr) -> bool:
+    return expr[0] == '<='
+
+def isGreater(expr) -> bool:
+    return expr[0] == '>'
+
+def isGreaterEqual(expr) -> bool:
+    return expr[0] == '>='
+
+def isEqual(expr) -> bool:
+    return expr[0] == '=='
+
+def isIfStatement(expr):
+    return expr[0] == 'if'
+
 class Eva:
     '''Eva language interpreter'''
 
@@ -54,25 +72,25 @@ class Eva:
         if isNumber(expr):
             return expr
 
-        elif isString(expr):
+        if isString(expr):
             # Return string value in double quotes
             return expr[1:-1]
 
         # Math expressions
-        elif isAddition(expr):
+        if isAddition(expr):
             return self.eval(expr[1], env) + self.eval(expr[2], env)
-        elif isSubstraction(expr):
+        if isSubstraction(expr):
             return self.eval(expr[1], env) - self.eval(expr[2], env)
-        elif isMultiplication(expr):
+        if isMultiplication(expr):
             return self.eval(expr[1], env) * self.eval(expr[2], env)
-        elif isDivision(expr):
+        if isDivision(expr):
             return self.eval(expr[1], env) / self.eval(expr[2], env)
-        elif isModule(expr):
+        if isModule(expr):
             return self.eval(expr[1], env) % self.eval(expr[2], env)
 
         if isNewVariable(expr):
             return env.define(expr[1], self.eval(expr[2], env))
-        
+
         if isSetVariable(expr):
             return env.assign(expr[1], self.eval(expr[2], env))
 
@@ -85,6 +103,30 @@ class Eva:
             for e in expr[1:]:
                 result = self.eval(e, blockEnv)
             return result
+
+        if isLess(expr):
+            return self.eval(expr[1], env) < self.eval(expr[2], env)
+
+        if isLessEqual(expr):
+            return self.eval(expr[1], env) <= self.eval(expr[2], env)
+
+        if isGreater(expr):
+            return self.eval(expr[1], env) > self.eval(expr[2], env)
+
+        if isGreaterEqual(expr):
+            return self.eval(expr[1], env) >= self.eval(expr[2], env)
+
+        if isEqual(expr):
+            return self.eval(expr[1], env) == self.eval(expr[2], env)
+
+        if isIfStatement(expr):
+            ifBlockEnv = Environment(dict(), env)
+
+            # if statement: if <cond> <consequent> <alternate>
+            if (self.eval(expr[1], ifBlockEnv)):
+                return self.eval(expr[2], ifBlockEnv)
+            else:
+                return self.eval(expr[3], ifBlockEnv)
 
         raise Exception(f"Unimplemented expression: {expr}")
 
