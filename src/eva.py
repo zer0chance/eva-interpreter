@@ -54,6 +54,9 @@ def isEqual(expr) -> bool:
 def isIfStatement(expr):
     return expr[0] == 'if'
 
+def isWhileLoop(expr):
+    return expr[0] == 'while'
+
 class Eva:
     '''Eva language interpreter'''
 
@@ -127,6 +130,15 @@ class Eva:
                 return self.eval(expr[2], ifBlockEnv)
             else:
                 return self.eval(expr[3], ifBlockEnv)
+
+        if isWhileLoop(expr):
+            whileBlockEnv = Environment(dict(), env)
+            result = None
+
+            # while loop: while <cond> <action>
+            while (self.eval(expr[1], whileBlockEnv)):
+                result = self.eval(expr[2], whileBlockEnv)
+            return result
 
         raise Exception(f"Unimplemented expression: {expr}")
 
