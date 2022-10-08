@@ -27,8 +27,14 @@ def isModule(expr) -> bool:
 def isNewVariable(expr) -> bool:
     return expr[0] == 'var'
 
+def isSetVariable(expr) -> bool:
+    return expr[0] == 'set'
+
 def isVariableName(expr) -> bool:
     return isinstance(expr, str) # TODO: add regex to validate variable name
+
+def isNewBlock(expr) -> bool:
+    return expr[0] == 'begin'
 
 class Eva:
     '''Eva language interpreter'''
@@ -54,21 +60,31 @@ class Eva:
 
         # Math expressions
         elif isAddition(expr):
-            return self.eval(expr[1]) + self.eval(expr[2])
+            return self.eval(expr[1], env) + self.eval(expr[2], env)
         elif isSubstraction(expr):
-            return self.eval(expr[1]) - self.eval(expr[2])
+            return self.eval(expr[1], env) - self.eval(expr[2], env)
         elif isMultiplication(expr):
-            return self.eval(expr[1]) * self.eval(expr[2])
+            return self.eval(expr[1], env) * self.eval(expr[2], env)
         elif isDivision(expr):
-            return self.eval(expr[1]) / self.eval(expr[2])
+            return self.eval(expr[1], env) / self.eval(expr[2], env)
         elif isModule(expr):
-            return self.eval(expr[1]) % self.eval(expr[2])
+            return self.eval(expr[1], env) % self.eval(expr[2], env)
 
         if isNewVariable(expr):
-            return env.define(expr[1], self.eval(expr[2]))
+            return env.define(expr[1], self.eval(expr[2], env))
+        
+        if isSetVariable(expr):
+            return env.assign(expr[1], self.eval(expr[2], env))
 
         if isVariableName(expr):
             return env.lookup(expr)
+
+        if isNewBlock(expr):
+            blockEnv = Environment(dict(), env)
+            result = None
+            for e in expr[1:]:
+                result = self.eval(e, blockEnv)
+            return result
 
         raise Exception(f"Unimplemented expression: {expr}")
 
