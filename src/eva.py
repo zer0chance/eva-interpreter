@@ -45,6 +45,9 @@ def isFunctionCall(expr) -> bool:
 def isClassDeclaration(expr) -> bool:
     return expr[0] == 'class'
 
+def isSuperOperator(expr) -> bool:
+    return expr[0] == 'super'
+
 def isNewOperator(expr) -> bool:
     return expr[0] == 'new'
 
@@ -112,6 +115,10 @@ class Eva:
     def printStack(self):
         self.execStack.printStackTrace()
 
+    def evalGlobal(self, expr):
+        '''Evaluate expressions wrapping it into block'''
+        return self.eval(['begin', expr])
+
     def eval(self, expr, env = globalEnv):
         if isNumber(expr):
             return expr
@@ -137,6 +144,10 @@ class Eva:
             
             instanceEnv = self.eval(instance, env)
             return instanceEnv.lookup(name)
+
+        if isSuperOperator(expr):
+            className = expr[1]
+            return self.eval(className, env).parent
 
         if isNewOperator(expr):
             classEnv = self.eval(expr[1], env)
