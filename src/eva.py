@@ -1,8 +1,7 @@
-from cmath import exp
 import numbers
-from re import A
 
 from src.environment import Environment
+from src.transformer import Transformer
 
 def isNumber(expr) -> bool:
     return isinstance(expr, numbers.Number)
@@ -25,8 +24,14 @@ def isNewBlock(expr) -> bool:
 def isIfStatement(expr) -> bool:
     return expr[0] == 'if'
 
+def isSwitchStatement(expr) -> bool:
+    return expr[0] == 'switch'
+
 def isWhileLoop(expr) -> bool:
     return expr[0] == 'while'
+
+def isForLoop(expr) -> bool:
+    return expr[0] == 'for'
 
 def isFunctionDeclaration(expr) -> bool:
     return expr[0] == 'def'
@@ -86,6 +91,7 @@ class Eva:
 
     def __init__(self) -> None:
         self.execStack = ExecutionStack(self.globalEnv)
+        self.transformer = Transformer()
         self.traceCallStack = False # TODO: pass by command line
 
     def pushFrame(self, func_name: str, env: Environment):
@@ -129,6 +135,12 @@ class Eva:
                 return self.eval(expr[2], ifBlockEnv)
             else:
                 return self.eval(expr[3], ifBlockEnv)
+        
+        if isSwitchStatement(expr):
+            switchBlockEnv = Environment(dict(), env)
+
+            ifExpr = self.transformer.transformSwitchToIf(expr)
+            return self.eval(ifExpr, switchBlockEnv)
 
         if isWhileLoop(expr):
             whileBlockEnv = Environment(dict(), env)
@@ -139,11 +151,17 @@ class Eva:
                 result = self.eval(expr[2], whileBlockEnv)
             return result
 
+        if isForLoop(expr):
+            # TODO
+            raise Exception(f"Unimplemented expression: {expr}")
+            # forBlockEnv = Environment(dict(), env)
+            # whileExpr = self.transformer.transformForToWhileLoop(expr)
+
+            # return self.eval(whileExpr, forBlockEnv)
+
         # Functions
         if isFunctionDeclaration(expr):
-            name, params, body = expr[1:]
-            # JIT-transpile to a variable declaration
-            varExpr = ['var', name, ['lambda', params, body]]
+            varExpr = self.transformer.transformDefToVarLambda(expr)
             return self.eval(varExpr, env)
 
         if isLambdaDeclaration(expr):

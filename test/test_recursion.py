@@ -3,7 +3,7 @@ import unittest
 from src.eva import Eva
 from test.utils import Run
 
-class TestLambdaFunctions(unittest.TestCase):
+class TestRecursion(unittest.TestCase):
     def setUp(self):
         pass
 
