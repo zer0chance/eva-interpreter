@@ -9,21 +9,6 @@ def isNumber(expr) -> bool:
 def isString(expr) -> bool:
     return isinstance(expr, str) and expr[0] == '"' and expr[-1] == '"'
 
-def isAddition(expr) -> bool:
-    return expr[0] == '+'
-
-def isSubstraction(expr) -> bool:
-    return expr[0] == '-'
-
-def isMultiplication(expr) -> bool:
-    return expr[0] == '*'
-
-def isDivision(expr) -> bool:
-    return expr[0] == '/'
-
-def isModule(expr) -> bool:
-    return expr[0] == '%'
-
 def isNewVariable(expr) -> bool:
     return expr[0] == 'var'
 
@@ -36,26 +21,14 @@ def isVariableName(expr) -> bool:
 def isNewBlock(expr) -> bool:
     return expr[0] == 'begin'
 
-def isLess(expr) -> bool:
-    return expr[0] == '<'
-
-def isLessEqual(expr) -> bool:
-    return expr[0] == '<='
-
-def isGreater(expr) -> bool:
-    return expr[0] == '>'
-
-def isGreaterEqual(expr) -> bool:
-    return expr[0] == '>='
-
-def isEqual(expr) -> bool:
-    return expr[0] == '=='
-
-def isIfStatement(expr):
+def isIfStatement(expr) -> bool:
     return expr[0] == 'if'
 
-def isWhileLoop(expr):
+def isWhileLoop(expr) -> bool:
     return expr[0] == 'while'
+
+def isFunctionCall(expr) -> bool:
+    return isinstance(expr, list)
 
 class Eva:
     '''Eva language interpreter'''
@@ -65,7 +38,24 @@ class Eva:
         'null': None,
         'true': True,
         'false': False,
-        'EVA_VERSION': 0.1
+        'EVA_VERSION': 0.1,
+        
+        # Math operators:
+        '+': lambda x, y: x + y,
+        '-': lambda x, y: x - y,
+        '*': lambda x, y: x * y,
+        '/': lambda x, y: x / y,
+        '%': lambda x, y: x % y,
+
+        # Comparison operators
+        '<' : lambda x, y: x < y,
+        '<=': lambda x, y: x <= y,
+        '>' : lambda x, y: x > y,
+        '>=': lambda x, y: x >= y,
+        '==': lambda x, y: x == y,
+
+        # Builtin functions
+        'print': lambda x: print(x)
     })
 
     def __init__(self) -> None:
@@ -78,18 +68,6 @@ class Eva:
         if isString(expr):
             # Return string value in double quotes
             return expr[1:-1]
-
-        # Math expressions
-        if isAddition(expr):
-            return self.eval(expr[1], env) + self.eval(expr[2], env)
-        if isSubstraction(expr):
-            return self.eval(expr[1], env) - self.eval(expr[2], env)
-        if isMultiplication(expr):
-            return self.eval(expr[1], env) * self.eval(expr[2], env)
-        if isDivision(expr):
-            return self.eval(expr[1], env) / self.eval(expr[2], env)
-        if isModule(expr):
-            return self.eval(expr[1], env) % self.eval(expr[2], env)
 
         if isNewVariable(expr):
             return env.define(expr[1], self.eval(expr[2], env))
@@ -106,21 +84,6 @@ class Eva:
             for e in expr[1:]:
                 result = self.eval(e, blockEnv)
             return result
-
-        if isLess(expr):
-            return self.eval(expr[1], env) < self.eval(expr[2], env)
-
-        if isLessEqual(expr):
-            return self.eval(expr[1], env) <= self.eval(expr[2], env)
-
-        if isGreater(expr):
-            return self.eval(expr[1], env) > self.eval(expr[2], env)
-
-        if isGreaterEqual(expr):
-            return self.eval(expr[1], env) >= self.eval(expr[2], env)
-
-        if isEqual(expr):
-            return self.eval(expr[1], env) == self.eval(expr[2], env)
 
         if isIfStatement(expr):
             ifBlockEnv = Environment(dict(), env)
@@ -139,6 +102,15 @@ class Eva:
             while (self.eval(expr[1], whileBlockEnv)):
                 result = self.eval(expr[2], whileBlockEnv)
             return result
+        
+        # Functions
+        if isFunctionCall(expr):
+            fn = self.eval(expr[0], env)
+            args = [self.eval(arg, env) for arg in expr[1:]]
+            if callable(fn):
+                return fn(*args)
+            
+            raise Exception(f"Undefined function: {expr}")
 
         raise Exception(f"Unimplemented expression: {expr}")
 
