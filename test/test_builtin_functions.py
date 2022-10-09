@@ -7,7 +7,7 @@ class TestBuiltinFunctions(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_math_operatiors(self):
+    def test_math_operations(self):
         eva = Eva()
 
         result = Run.SExpression(eva,

@@ -1,5 +1,6 @@
 from cmath import exp
 import numbers
+from re import A
 
 from src.environment import Environment
 
@@ -26,6 +27,9 @@ def isIfStatement(expr) -> bool:
 
 def isWhileLoop(expr) -> bool:
     return expr[0] == 'while'
+
+def isFunctionDeclaration(expr) -> bool:
+    return expr[0] == 'def'
 
 def isFunctionCall(expr) -> bool:
     return isinstance(expr, list)
@@ -102,18 +106,34 @@ class Eva:
             while (self.eval(expr[1], whileBlockEnv)):
                 result = self.eval(expr[2], whileBlockEnv)
             return result
-        
+
         # Functions
+        if isFunctionDeclaration(expr):
+            name, params, body = expr[1:]
+            newFunction = {
+                'params': params,
+                'body'  : body,
+                'env'   : env
+            }
+            return env.define(name, newFunction)
+
         if isFunctionCall(expr):
             fn = self.eval(expr[0], env)
             args = [self.eval(arg, env) for arg in expr[1:]]
+
+            # Native functions
             if callable(fn):
                 return fn(*args)
-            
-            raise Exception(f"Undefined function: {expr}")
+
+            # User-defined functions
+            if len(fn['params']) != len(args):
+                raise Exception(f"Parametrs mismatch: {expr}")
+
+            # activationRecord = {param: value for param in fn['params'] for value in args}
+            activationRecord = dict(zip(fn['params'], args))
+            activationEnv = Environment(activationRecord, fn['env'])
+
+            # TODO: not create a new environment if function is a block
+            return self.eval(fn['body'], activationEnv)
 
         raise Exception(f"Unimplemented expression: {expr}")
-
-
-if __name__ == '__main__':
-    eva = Eva()
