@@ -3,11 +3,11 @@ import unittest
 from src.eva import Eva
 from test.utils import Run
 
-class TestBuiltinFunctions(unittest.TestCase):
+class TestUserFunctions(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_functon_one_arg(self):
+    def test_function_one_arg(self):
         eva = Eva()
 
         result = Run.SExpression(eva,
@@ -23,7 +23,7 @@ class TestBuiltinFunctions(unittest.TestCase):
 
         self.assertEqual(result, 36)
 
-    def test_functon_two_args(self):
+    def test_function_two_args(self):
         eva = Eva()
 
         result = Run.SExpression(eva,

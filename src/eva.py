@@ -31,6 +31,9 @@ def isWhileLoop(expr) -> bool:
 def isFunctionDeclaration(expr) -> bool:
     return expr[0] == 'def'
 
+def isLambdaDeclaration(expr) -> bool:
+    return expr[0] == 'lambda'
+
 def isFunctionCall(expr) -> bool:
     return isinstance(expr, list)
 
@@ -110,12 +113,18 @@ class Eva:
         # Functions
         if isFunctionDeclaration(expr):
             name, params, body = expr[1:]
-            newFunction = {
+            # JIT-transpile to a variable declaration
+            varExpr = ['var', name, ['lambda', params, body]]
+            return self.eval(varExpr, env)
+
+        if isLambdaDeclaration(expr):
+            # Derectly return the function without installing it to the environment
+            params, body = expr[1:]
+            return {
                 'params': params,
                 'body'  : body,
                 'env'   : env
             }
-            return env.define(name, newFunction)
 
         if isFunctionCall(expr):
             fn = self.eval(expr[0], env)
