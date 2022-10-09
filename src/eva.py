@@ -12,7 +12,7 @@ def isString(expr) -> bool:
 def isNewVariable(expr) -> bool:
     return expr[0] == 'var'
 
-def isSetVariable(expr) -> bool:
+def isSetInstruction(expr) -> bool:
     return expr[0] == 'set'
 
 def isVariableName(expr) -> bool:
@@ -41,6 +41,15 @@ def isLambdaDeclaration(expr) -> bool:
 
 def isFunctionCall(expr) -> bool:
     return isinstance(expr, list)
+
+def isClassDeclaration(expr) -> bool:
+    return expr[0] == 'class'
+
+def isNewOperator(expr) -> bool:
+    return expr[0] == 'new'
+
+def isPropertyAccess(expr) -> bool:
+    return expr[0] == 'prop'
 
 class ExecutionStack:
     '''Stack that holds references to the activation
@@ -111,21 +120,52 @@ class Eva:
             # Return string value in double quotes
             return expr[1:-1]
 
+        if isClassDeclaration(expr):
+            name, parent, body = expr[1:]
+
+            # A class is just an environment that store methods
+            # and shared properties
+
+            parentEnv = self.eval(parent, env) or env
+            classEnv = Environment({}, parentEnv)
+            self.__evalBody(body, classEnv)
+
+            return env.define(name, classEnv)
+
+        if isPropertyAccess(expr):
+            instance, name = expr[1:]
+            
+            instanceEnv = self.eval(instance, env)
+            return instanceEnv.lookup(name)
+
+        if isNewOperator(expr):
+            classEnv = self.eval(expr[1], env)
+            # Parent component of instance environment is set to it's class
+
+            instanceEnv = Environment({}, classEnv)
+            constructorArgs = [instanceEnv] + [self.eval(arg, env) for arg in expr[2:]]
+            self.__callUserDefinedFunction(classEnv.lookup('constructor'), constructorArgs, expr, classEnv)
+
+            return instanceEnv
+
         if isNewVariable(expr):
             return env.define(expr[1], self.eval(expr[2], env))
 
-        if isSetVariable(expr):
-            return env.assign(expr[1], self.eval(expr[2], env))
+        if isSetInstruction(expr):
+            ref, value = expr[1:]
 
-        if isVariableName(expr):
-            return env.lookup(expr)
+            if (ref[0] == 'prop'):
+                instance, propName = ref[1:]
+                return self.eval(instance, env).define(propName, self.eval(value, env))
+
+            return env.assign(expr[1], self.eval(expr[2], env))
 
         if isNewBlock(expr):
             blockEnv = Environment(dict(), env)
-            result = None
-            for e in expr[1:]:
-                result = self.eval(e, blockEnv)
-            return result
+            return self.__evalBlock(expr[1:], blockEnv)
+        
+        if isVariableName(expr):
+            return env.lookup(expr)
 
         if isIfStatement(expr):
             ifBlockEnv = Environment(dict(), env)
@@ -140,7 +180,7 @@ class Eva:
             switchBlockEnv = Environment(dict(), env)
 
             ifExpr = self.transformer.transformSwitchToIf(expr)
-            return self.eval(ifExpr, switchBlockEnv)
+            return self.__evalBody(ifExpr, switchBlockEnv)
 
         if isWhileLoop(expr):
             whileBlockEnv = Environment(dict(), env)
@@ -148,7 +188,7 @@ class Eva:
 
             # while loop: while <cond> <action>
             while (self.eval(expr[1], whileBlockEnv)):
-                result = self.eval(expr[2], whileBlockEnv)
+                result = self.__evalBody(expr[2], whileBlockEnv)
             return result
 
         if isForLoop(expr):
@@ -165,7 +205,7 @@ class Eva:
             return self.eval(varExpr, env)
 
         if isLambdaDeclaration(expr):
-            # Derectly return the function without installing it to the environment
+            # Directly return the function without installing it to the environment
             params, body = expr[1:]
             return {
                 'params': params,
@@ -188,17 +228,31 @@ class Eva:
                 return result
 
             # User-defined functions
-            if len(fn['params']) != len(args):
-                raise Exception(f"Parametrs mismatch: {expr}")
+            return self.__callUserDefinedFunction(fn, args, expr, env)
 
-            # activationRecord = {param: value for param in fn['params'] for value in args}
-            activationRecord = dict(zip(fn['params'], args))
-            activationEnv = Environment(activationRecord, fn['env'])
-
-            # TODO: not create a new environment if function is a block
-            self.pushFrame(expr[0], env)
-            result = self.eval(fn['body'], activationEnv)
-            self.popFrame()
-            return result
 
         raise Exception(f"Unimplemented expression: {expr}")
+
+    def __evalBlock(self, block, blockEnv):
+        result = None
+        for e in block:
+            result = self.eval(e, blockEnv)
+        return result
+
+    def __evalBody(self, body, env):
+        if body[0] == 'begin':
+            return self.__evalBlock(body[1:], env)
+        return self.eval(body, env)
+
+    def __callUserDefinedFunction(self, fn, args, expr, env):
+        if len(fn['params']) != len(args):
+            raise Exception(f"Parametrs mismatch: {expr}")
+
+        # activationRecord = {param: value for param in fn['params'] for value in args}
+        activationRecord = dict(zip(fn['params'], args))
+        activationEnv = Environment(activationRecord, fn['env'])
+
+        self.pushFrame(expr[0], env)
+        result = self.__evalBody(fn['body'], activationEnv)
+        self.popFrame()
+        return result
