@@ -2,6 +2,7 @@ import numbers
 
 from src.environment import Environment
 from src.transformer import Transformer
+from parser import evaparser
 
 def isNumber(expr) -> bool:
     return isinstance(expr, numbers.Number)
@@ -44,6 +45,12 @@ def isFunctionCall(expr) -> bool:
 
 def isClassDeclaration(expr) -> bool:
     return expr[0] == 'class'
+
+def isModuleDeclaration(expr) -> bool:
+    return expr[0] == 'module'
+
+def isModuleImport(expr) -> bool:
+    return expr[0] == 'import'
 
 def isSuperOperator(expr) -> bool:
     return expr[0] == 'super'
@@ -138,6 +145,27 @@ class Eva:
             self.__evalBody(body, classEnv)
 
             return env.define(name, classEnv)
+
+        if isModuleDeclaration(expr):
+            name, body = expr[1:]
+
+            moduleEnv = Environment({}, env)
+            self.__evalBody(body, moduleEnv)
+
+            return env.define(name, moduleEnv)
+
+        if isModuleImport(expr):
+            # TODO: load only specific parts of module:
+            #   (import (square) Math)
+            name = expr[1]
+
+            # TODO: not loaded if already loaded
+            with open(f'modules/{name}.eva', 'r') as moduleFile:
+                moduleSrc = moduleFile.read()
+            moduleBody = evaparser.parse(f'(begin {moduleSrc})')
+
+            moduleExp = ['module', name, moduleBody]
+            return self.eval(moduleExp, self.globalEnv)
 
         if isPropertyAccess(expr):
             instance, name = expr[1:]
