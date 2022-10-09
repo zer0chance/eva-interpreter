@@ -37,10 +37,29 @@ def isLambdaDeclaration(expr) -> bool:
 def isFunctionCall(expr) -> bool:
     return isinstance(expr, list)
 
+class ExecutionStack:
+    '''Stack that holds references to the activation
+       records of currently active functions'''
+
+    def __init__(self, globalEnv: Environment):
+        # Frame is a list of [<function_name>, <env_id>] entries.
+        self.stack = [['main', id(globalEnv)]]
+
+    def pushFrame(self, frame):
+        self.stack.append(frame)
+
+    def popFrame(self):
+        self.stack.pop()
+
+    def printStackTrace(self):
+        print('\n :::Stack Trace:::')
+        for number, frame in enumerate(self.stack):
+            print(f'-- {number}. {frame[0]} from Ox{frame[1]:x} environment')
+
 class Eva:
     '''Eva language interpreter'''
 
-    # Global preinstalled variables
+    # Global preinstalls
     globalEnv = Environment({
         'null': None,
         'true': True,
@@ -59,14 +78,24 @@ class Eva:
         '<=': lambda x, y: x <= y,
         '>' : lambda x, y: x > y,
         '>=': lambda x, y: x >= y,
-        '==': lambda x, y: x == y,
+        '=': lambda x, y: x == y,
 
         # Builtin functions
         'print': lambda x: print(x)
     })
 
     def __init__(self) -> None:
-        pass
+        self.execStack = ExecutionStack(self.globalEnv)
+        self.traceCallStack = False # TODO: pass by command line
+
+    def pushFrame(self, func_name: str, env: Environment):
+        self.execStack.pushFrame([func_name, id(env)])
+
+    def popFrame(self):
+        self.execStack.popFrame()
+
+    def printStack(self):
+        self.execStack.printStackTrace()
 
     def eval(self, expr, env = globalEnv):
         if isNumber(expr):
@@ -127,12 +156,18 @@ class Eva:
             }
 
         if isFunctionCall(expr):
+            if self.traceCallStack:
+                self.printStack()
+
             fn = self.eval(expr[0], env)
             args = [self.eval(arg, env) for arg in expr[1:]]
 
             # Native functions
             if callable(fn):
-                return fn(*args)
+                self.pushFrame(expr[0], env)
+                result = fn(*args)
+                self.popFrame()
+                return result
 
             # User-defined functions
             if len(fn['params']) != len(args):
@@ -143,6 +178,9 @@ class Eva:
             activationEnv = Environment(activationRecord, fn['env'])
 
             # TODO: not create a new environment if function is a block
-            return self.eval(fn['body'], activationEnv)
+            self.pushFrame(expr[0], env)
+            result = self.eval(fn['body'], activationEnv)
+            self.popFrame()
+            return result
 
         raise Exception(f"Unimplemented expression: {expr}")
