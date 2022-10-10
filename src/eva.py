@@ -105,6 +105,7 @@ class Eva:
         '=': lambda x, y: x == y,
 
         # Builtin functions
+        # TODO: pass multiple params to print
         'print': lambda x: print(x)
     })
 
