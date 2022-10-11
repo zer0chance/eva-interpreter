@@ -3,7 +3,7 @@
 import argparse
 
 from parser import evaparser
-from src.eva import Eva
+from src.interpreter import Eva
 
 def evalGlobal(eva: Eva, code: str):
     expr = evaparser.parse(f'(begin {code})')

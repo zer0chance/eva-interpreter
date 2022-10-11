@@ -1,5 +1,5 @@
 from parser import evaparser
-from src.eva import Eva
+from src.interpreter import Eva
 
 class Run:
     @staticmethod

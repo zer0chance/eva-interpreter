@@ -1,6 +1,6 @@
 import unittest
 
-from src.eva import Eva
+from src.interpreter import Eva
 from test.utils import Run
 
 class TestLambdaFunctions(unittest.TestCase):

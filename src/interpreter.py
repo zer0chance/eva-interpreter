@@ -11,55 +11,61 @@ def isString(expr) -> bool:
     return isinstance(expr, str) and expr[0] == '"' and expr[-1] == '"'
 
 def isNewVariable(expr) -> bool:
-    return expr[0] == 'var'
+    return isinstance(expr, list) and expr[0] == 'var'
 
 def isSetInstruction(expr) -> bool:
-    return expr[0] == 'set'
+    return isinstance(expr, list) and expr[0] == 'set'
 
 def isVariableName(expr) -> bool:
     return isinstance(expr, str) # TODO: add regex to validate variable name
 
 def isNewBlock(expr) -> bool:
-    return expr[0] == 'begin'
+    return isinstance(expr, list) and expr[0] == 'begin'
 
 def isIfStatement(expr) -> bool:
-    return expr[0] == 'if'
+    return isinstance(expr, list) and expr[0] == 'if'
 
 def isSwitchStatement(expr) -> bool:
-    return expr[0] == 'switch'
+    return isinstance(expr, list) and expr[0] == 'switch'
 
 def isWhileLoop(expr) -> bool:
-    return expr[0] == 'while'
+    return isinstance(expr, list) and expr[0] == 'while'
 
 def isForLoop(expr) -> bool:
-    return expr[0] == 'for'
+    return isinstance(expr, list) and expr[0] == 'for'
 
 def isFunctionDeclaration(expr) -> bool:
-    return expr[0] == 'def'
+    return isinstance(expr, list) and expr[0] == 'def'
 
 def isLambdaDeclaration(expr) -> bool:
-    return expr[0] == 'lambda'
+    return isinstance(expr, list) and expr[0] == 'lambda'
 
 def isFunctionCall(expr) -> bool:
     return isinstance(expr, list)
 
 def isClassDeclaration(expr) -> bool:
-    return expr[0] == 'class'
+    return isinstance(expr, list) and expr[0] == 'class'
 
 def isModuleDeclaration(expr) -> bool:
-    return expr[0] == 'module'
+    return isinstance(expr, list) and expr[0] == 'module'
 
 def isModuleImport(expr) -> bool:
-    return expr[0] == 'import'
+    return isinstance(expr, list) and expr[0] == 'import'
 
 def isSuperOperator(expr) -> bool:
-    return expr[0] == 'super'
+    return isinstance(expr, list) and expr[0] == 'super'
 
 def isNewOperator(expr) -> bool:
-    return expr[0] == 'new'
+    return isinstance(expr, list) and expr[0] == 'new'
 
 def isPropertyAccess(expr) -> bool:
-    return expr[0] == 'prop'
+    return isinstance(expr, list) and expr[0] == 'prop'
+
+def isInc(expr) -> bool:
+    return isinstance(expr, list) and expr[0] == 'inc'
+
+def isDec(expr) -> bool:
+    return isinstance(expr, list) and expr[0] == 'dec'
 
 class ExecutionStack:
     '''Stack that holds references to the activation
@@ -103,6 +109,11 @@ class Eva:
         '>' : lambda x, y: x > y,
         '>=': lambda x, y: x >= y,
         '=': lambda x, y: x == y,
+
+        # Logic operators
+        'and' : lambda x, y: x and y,
+        'or'  : lambda x, y: x or y,
+        'xor' : lambda x, y: x ^ y,
 
         # Builtin functions
         # TODO: pass multiple params to print
@@ -168,6 +179,14 @@ class Eva:
             moduleExp = ['module', name, moduleBody]
             return self.eval(moduleExp, self.globalEnv)
 
+        if isInc(expr):
+            setExpr = self.transformer.transformIncToSet(expr)
+            return self.eval(setExpr, env)
+
+        if isDec(expr):
+            setExpr = self.transformer.transformDecToSet(expr)
+            return self.eval(setExpr, env)
+            
         if isPropertyAccess(expr):
             instance, name = expr[1:]
             
@@ -232,12 +251,10 @@ class Eva:
             return result
 
         if isForLoop(expr):
-            # TODO
-            raise Exception(f"Unimplemented expression: {expr}")
-            # forBlockEnv = Environment(dict(), env)
-            # whileExpr = self.transformer.transformForToWhileLoop(expr)
+            forBlockEnv = Environment(dict(), env)
+            whileExpr = self.transformer.transformForToWhileLoop(expr)
 
-            # return self.eval(whileExpr, forBlockEnv)
+            return self.eval(whileExpr, forBlockEnv)
 
         # Functions
         if isFunctionDeclaration(expr):
@@ -280,7 +297,7 @@ class Eva:
         return result
 
     def __evalBody(self, body, env):
-        if body[0] == 'begin':
+        if isinstance(body, list) and body[0] == 'begin':
             return self.__evalBlock(body[1:], env)
         return self.eval(body, env)
 
@@ -288,7 +305,6 @@ class Eva:
         if len(fn['params']) != len(args):
             raise Exception(f"Parametrs mismatch: {expr}")
 
-        # activationRecord = {param: value for param in fn['params'] for value in args}
         activationRecord = dict(zip(fn['params'], args))
         activationEnv = Environment(activationRecord, fn['env'])
 

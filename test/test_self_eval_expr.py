@@ -1,5 +1,5 @@
 import unittest
-from src.eva import Eva
+from src.interpreter import Eva
 
 class TestSelfEvaluatingExpressions(unittest.TestCase):
     def setUp(self):

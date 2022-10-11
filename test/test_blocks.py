@@ -1,5 +1,5 @@
 import unittest
-from src.eva import Eva
+from src.interpreter import Eva
 
 class TestBlocks(unittest.TestCase):
     def setUp(self):

@@ -30,3 +30,40 @@ class Transformer:
             currentCase = currentCase[3]
 
         return ifExp
+        
+    def transformForToWhileLoop(self, forExp):
+        '''JIT-transpile for loop statement to while loop'''
+        # For loop syntax:
+        #   (for <init> <cond> <modifier> <expr>)
+        # While loop:
+        #   (begin <init> while <cond> (begin <expr> <modifier>))
+
+        init, cond, modifier, expr = forExp[1:]
+        whileExp = ['begin', 
+                        init, 
+                        ['while', cond, 
+                            ['begin', expr, modifier]
+                        ]
+                    ]
+
+        return whileExp
+    
+    def transformIncToSet(self, incExp):
+        '''JIT-transpile inc to set expression'''
+        # Inc:
+        #   (inc <var>)
+        # Set:
+        #   (set <var> (+ <var> 1))
+
+        varName = incExp[1]
+        return ['set', varName, ['+', varName, 1]]
+    
+    def transformDecToSet(self, incExp):
+        '''JIT-transpile inc to set expression'''
+        # Dec:
+        #   (dec <var>)
+        # Set:
+        #   (set <var> (- <var> 1))
+
+        varName = incExp[1]
+        return ['set', varName, ['-', varName, 1]]
