@@ -18,7 +18,7 @@
 
 %%
 
-\s+               /* skip whitespace */
+\s+               # skip whitespace
 
 \"[^\"]*\"        return 'STRING'
 
@@ -39,16 +39,18 @@ Exp
   ;
 
 Atom
-  : NUMBER { $$ = Number($1) }
+  : NUMBER { $$ = int($1) }
   | STRING
   | SYMBOL
   ;
 
 List
   : '(' ListEntries ')' { $$ = $2 }
+  |
   ;
 
 ListEntries
-  : ListEntries Exp { $1.push($2); $$ = $1 }
+  : ListEntries Exp { $1.append($2)
+	$$ = $1 }
   | /* empty */     { $$ = [] }
   ;
