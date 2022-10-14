@@ -1,15 +1,15 @@
-#! python3
+#!/usr/bin/python3
 
 import argparse
 
 from parser import evaparser
 from src.interpreter import Eva
 
-def evalGlobal(eva: Eva, code: str):
+def evalGlobal(code: str):
     expr = evaparser.parse(f'(begin {code})')
-    return eva.evalGlobal(expr)
+    return Eva().evalGlobal(expr)
 
-argparser = argparse.ArgumentParser(description='=====DAVY JONES=====')
+argparser = argparse.ArgumentParser(description='===== EVA language AST-interpreter =====')
 argparser.add_argument('-e', '--evaluate-expression',
                         dest='expr',
                         action='store',
@@ -24,10 +24,9 @@ argparser.add_argument('-f', '--file',
 if __name__ == '__main__':
     args = argparser.parse_args()
 
-    eva = Eva()
     if args.expr:
-        evalGlobal(eva, args.expr)
+        evalGlobal(args.expr)
     if args.file:
         with open(args.file, 'r') as srcFile:
             moduleSrc = srcFile.read()
-        evalGlobal(eva, moduleSrc)
+        evalGlobal(moduleSrc)
