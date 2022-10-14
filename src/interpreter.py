@@ -1,3 +1,4 @@
+from cmath import exp
 import numbers
 
 from src.environment import Environment
@@ -11,61 +12,67 @@ def isString(expr) -> bool:
     return isinstance(expr, str) and expr[0] == '"' and expr[-1] == '"'
 
 def isNewVariable(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'var'
+    return expr[0] == 'var'
 
 def isSetInstruction(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'set'
+    return expr[0] == 'set'
 
 def isVariableName(expr) -> bool:
     return isinstance(expr, str) # TODO: add regex to validate variable name
 
 def isNewBlock(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'begin'
+    return expr[0] == 'begin'
 
 def isIfStatement(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'if'
+    return expr[0] == 'if'
 
 def isSwitchStatement(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'switch'
+    return expr[0] == 'switch'
 
 def isWhileLoop(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'while'
+    return expr[0] == 'while'
 
 def isForLoop(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'for'
+    return expr[0] == 'for'
 
 def isFunctionDeclaration(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'def'
+    return expr[0] == 'def'
 
 def isLambdaDeclaration(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'lambda'
+    return expr[0] == 'lambda'
 
 def isFunctionCall(expr) -> bool:
     return isinstance(expr, list)
 
 def isClassDeclaration(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'class'
+    return expr[0] == 'class'
 
 def isModuleDeclaration(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'module'
+    return expr[0] == 'module'
 
 def isModuleImport(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'import'
+    return expr[0] == 'import'
 
 def isSuperOperator(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'super'
+    return expr[0] == 'super'
 
 def isNewOperator(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'new'
+    return expr[0] == 'new'
 
 def isPropertyAccess(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'prop'
+    return expr[0] == 'prop'
 
 def isInc(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'inc'
+    return expr[0] == 'inc'
 
 def isDec(expr) -> bool:
-    return isinstance(expr, list) and expr[0] == 'dec'
+    return expr[0] == 'dec'
+
+def isListDeclaration(expr) -> bool:
+    return expr[0] == 'list'
+
+def isIndexAccess(expr) -> bool:
+    return expr[0] == 'idx'
 
 class ExecutionStack:
     '''Stack that holds references to the activation
@@ -114,10 +121,11 @@ class Eva:
         'and' : lambda x, y: x and y,
         'or'  : lambda x, y: x or y,
         'xor' : lambda x, y: x ^ y,
+        'not' : lambda x   : not x,
 
         # Builtin functions
         # TODO: pass multiple params to print
-        'print': lambda x: print(x)
+        'print': lambda *x: print(*x)
     })
 
     def __init__(self) -> None:
@@ -206,6 +214,15 @@ class Eva:
             self.__callUserDefinedFunction(classEnv.lookup('constructor'), constructorArgs, expr, classEnv)
 
             return instanceEnv
+     
+        if isListDeclaration(expr):
+            name = expr[1]
+            args = [self.eval(arg, env) for arg in expr[2:]]
+            return env.define(name, args)
+        
+        if isIndexAccess(expr):
+            lst = self.eval(expr[1], env)
+            return lst[self.eval(expr[2])]
 
         if isNewVariable(expr):
             return env.define(expr[1], self.eval(expr[2], env))
@@ -216,6 +233,11 @@ class Eva:
             if (ref[0] == 'prop'):
                 instance, propName = ref[1:]
                 return self.eval(instance, env).define(propName, self.eval(value, env))
+            if (ref[0] == 'idx'):
+                lst, index = ref[1:]
+                value = self.eval(value, env)
+                self.eval(lst, env)[self.eval(index)] = value
+                return value
 
             return env.assign(expr[1], self.eval(expr[2], env))
 
